@@ -1,0 +1,98 @@
+name: OrangeHRM Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Chrome
+        if: matrix.browser == 'chrome'
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Setup Firefox
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+
+      - name: Run tests
+        run: |
+          mkdir -p reports/allure-results
+          pytest --browser=${{ matrix.browser }} --headless=true --alluredir=reports/allure-results
+        env:
+          BROWSER: ${{ matrix.browser }}
+          HEADLESS: true
+
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          pip install allure-commandline
+          allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report-${{ matrix.browser }}
+          path: reports/allure-report
+          retention-days: 30
+
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots-${{ matrix.browser }}
+          path: reports/screenshots
+          retention-days: 7
+
+  deploy-report:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Chrome Allure Report
+        uses: actions/download-artifact@v3
+        with:
+          name: allure-report-chrome
+          path: reports/allure-report-chrome
+
+      - name: Download Firefox Allure Report
+        uses: actions/download-artifact@v3
+        with:
+          name: allure-report-firefox
+          path: reports/allure-report-firefox
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports
+          force_orphan: true

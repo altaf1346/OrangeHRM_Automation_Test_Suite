@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./reports:/app/reports
+    environment:
+      - BROWSER=chrome
+      - HEADLESS=true
+      - BASE_URL=https://opensource-demo.orangehrmlive.com
+    command: >
+      sh -c "pytest --alluredir=reports/allure-results && allure generate reports/allure-results -o reports/allure-report"
+
+  allure:
+    image: frankescobar/allure-docker-service
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 1
+      KEEP_HISTORY: "TRUE"
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./reports/allure-results:/app/allure-results
+      - ./reports/allure-report:/app/default-reports
