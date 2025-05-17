@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload Allure Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report-${{ matrix.browser }}
           path: reports/allure-report
@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload Screenshots
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ matrix.browser }}
           path: reports/screenshots
@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download Chrome Allure Report
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: allure-report-chrome
           path: reports/allure-report-chrome
